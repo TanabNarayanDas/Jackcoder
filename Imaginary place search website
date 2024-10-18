@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dream Places</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Visit the Beautiful Places of Your Dreams</h1>
+        <p>Imagine the perfect place you've always wanted to visit!</p>
+        <div class="search-container">
+            <input type="text" id="searchBar" placeholder="Type your imaginary place...">
+            <button onclick="searchPlace()">Search</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="image-gallery">
+            <div class="image-card">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0ZJaatkWG7eZoyWGN2xi_gkp2qx5OQqjcnA&s" alt="Beautiful Cartoon Waterfall" width=600>
+                <h2>Enchanting Waterfall</h2>
+            </div>
+            <div class="image-card">
+                <img src="https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3" alt="Beautiful Space" width=600>
+                <h2>Starlit Space</h2>
+            </div>
+            <div class="image-card">
+                <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrUEwTA_0c9cuzkrI6daqRlb4XvES_ioa42Q&s" alt="Beautiful Beach" width=600>
+                <h2>Sunny Beach</h2>
+            </div>
+            <div class="image-card">
+                <img src="https://media.istockphoto.com/id/1082411378/photo/magical-fairytale-forest.jpg?s=612x612&w=0&k=20&c=3iw53YdeeFEqRuxcUL0UCQZUMJ3e2IRtUfvgSjAysjQ=" alt="Beautiful Forest">
+                <h2>Mystical Forest</h2>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 Dream Places. All rights reserved.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
