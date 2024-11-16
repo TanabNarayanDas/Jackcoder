@@ -1,0 +1,274 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.stats import linregress
+import math
+from scipy.optimize import curve_fit
+from sklearn.linear_model import LinearRegression
+
+# Step 1: Create synthetic historical data
+data = {
+    'Days': np.arange(1, 31),  # 1 to 30 days
+    'Cases': [10, 15, 30, 50, 80, 120, 180, 300, 450, 700,
+              900, 1100, 1300, 1600, 1900, 2200, 2500,
+              3000, 3500, 4000, 4500, 5000, 5500,
+              6000, 7000, 8000, 9000, 10000, 11000, 12000],
+    'vaccinated_percentage': np.array([0, 0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45]* 3)[:30] 
+}
+df = pd.DataFrame(data)
+
+# Step 2: Visualize the historical data
+plt.figure(figsize=(10, 5))
+sns.lineplot(x='Days', y='Cases', data=df, marker='o')
+plt.title('Historical Spread of Virus')
+plt.xlabel('Days')
+plt.ylabel('Number of Cases')
+plt.grid()
+plt.show()
+
+# Step 3: Prepare the data for modeling
+X = df['Days']  
+y = df['Cases'] 
+
+# Step 4: Perform linear regression using SciPy
+slope, intercept, r_value, p_value, std_err = linregress(X, y)
+
+# Step 5: Create a function for predictions
+def predict(days):
+    return slope * days + intercept
+
+# Step 6: Make predictions for the next 10 days
+future_days = np.arange(31, 41)  # Predicting for days 31 to 40
+predicted_cases = predict(future_days)
+
+# Step 7: Calculate percentage increase for the future predictions
+percentage_increase = ((predicted_cases - y.iloc[-1]) / y.iloc[-1]) * 100
+for i, day in enumerate(future_days):
+    print(f'Day {day}: Predicted Cases = {predicted_cases[i]:.0f}, Percentage Increase = {percentage_increase[i]:.2f}%')
+
+
+# Step 8: Visualize the predictions
+plt.figure(figsize=(10, 5))
+sns.lineplot(x='Days', y='Cases', data=df, marker='o', label='Historical Cases')
+sns.lineplot(x=future_days, y=predicted_cases, marker='x', linestyle='--', color='orange', label='Predicted Cases')
+plt.title('Virus Spread Prediction')
+plt.xlabel('Days')
+plt.ylabel('Number of Cases')
+plt.legend()
+plt.grid()
+plt.show()
+
+
+
+
+Days = df['Days'].values
+Cases = df['Cases'].values 
+vaccinated_percentage = df['vaccinated_percentage'].values
+# Step 1: Logistic Growth Model for Virus Spread (Without Vaccine)
+def logistic_growth(t, a, b, c):
+    """
+    Logistic growth function to model the spread of the virus.
+    a = maximum number of infected individuals (population saturation)
+    b = growth rate
+    c = time shift (lags the curve)
+    """
+    return a / (1 + np.exp(-b * (t - c)))
+
+# Fit the logistic growth model to the data
+params, _ = curve_fit(logistic_growth, Days, Cases, p0=[max(Cases)*1.2, 0.5, 2])
+
+# Step 2: Incorporating Vaccine Impact (reducing virus transmission)
+def logistic_with_vaccine(t, a, b, c, vaccine_effect):
+    """
+    Logistic growth with vaccination impact. The vaccine reduces transmission by decreasing the susceptible population.
+    vaccine_effect: Rate at which vaccination decreases transmission.
+    """
+    index = np.minimum(t.astype(int), len(vaccinated_percentage) - 1)  
+    reduced_b = b * (1 - vaccine_effect * vaccinated_percentage[index])   # Reduced growth rate due to vaccination
+    return a / (1 + np.exp(-reduced_b * (t - c)))
+
+# Fit the logistic model with vaccination impact
+params_vaccine, _ = curve_fit(logistic_with_vaccine, Days, Cases, 
+                              p0=[max(Cases)*1.2, 0.5, 2, 0.1], maxfev=10000)
+
+# Step 3: Predict Future Virus Spread (With Vaccine Impact)
+future_days = np.array([11, 12, 13, 14, 15])  # Predicting the next 5 days
+predicted_infected_with_vaccine = logistic_with_vaccine(future_days, *params_vaccine)
+
+# Step 4: Linear Regression Model for Comparison
+X = Days.reshape(-1, 1)  # Reshape for regression model
+y = Cases
+
+# Create and train a Linear Regression model
+regressor = LinearRegression()
+regressor.fit(X, y)
+
+last_date = pd.to_datetime('2024-01-01')  
+future_dates = [last_date + pd.DateOffset(days=i) for i in future_days]
+
+# Predict future cases using Linear Regression
+predicted_cases_regression = regressor.predict(future_days.reshape(-1, 1))
+print(f"Predicted Infected Cases for the next 5 days (With Vaccine):")
+for day, infected in zip(future_dates, predicted_infected_with_vaccine):
+    print(f"{day.strftime('%Y-%m-%d')}: {infected:.2f} infected cases")
+
+print("\nLinear Regression Predictions for the next 5 days:")
+for day, infected in zip(future_dates, predicted_cases_regression):
+    print(f"{day.strftime('%Y-%m-%d')}: {infected:.2f} infected cases")
+
+
+
+
+def logistic_growth(t, P0, r, K):
+    """
+    Logistic growth function to model virus spread.
+    t: Time (days or weeks)
+    P0: Initial number of infected individuals
+    r: Growth rate
+    K: Carrying capacity (max possible infected population)
+    """
+    return K / (1 + (K - P0) / P0 * np.exp(-r * t))
+
+# Function for Moving Average (MA)
+def moving_average(data, window_size):
+    return data.rolling(window=window_size, min_periods=1).mean()
+
+# Function for Exponentially Weighted Moving Average (EMA)
+def exponentially_weighted_moving_average(data, span):
+    return data.ewm(span=span, adjust=False).mean()
+
+# Simulate the virus data (Lethal Marburg virus example)
+np.random.seed(42)
+
+# Assume time period for simulation (100 days)
+days = np.arange(1, 101)
+
+# Parameters for the logistic growth model
+initial_cases = 10  # Initial infected individuals
+growth_rate = 0.05  # Growth rate of the infection
+carrying_capacity = 15000  # Max infected population (carrying capacity)
+
+# Simulating actual virus spread using logistic growth model
+true_cases = logistic_growth(days, initial_cases, growth_rate, carrying_capacity)
+
+# Adding noise to simulate real-world data
+noisy_cases = true_cases + np.random.normal(0, 100, size=days.shape)
+
+# Create a DataFrame to store the data
+df = pd.DataFrame({
+    'days': days,
+    'actual_cases': noisy_cases
+})
+# Compute moving average and EMA for trend analysis
+window_size = 7  # 7-day moving average
+span = 7  # 7-day exponential moving average
+df['MA'] = moving_average(df['actual_cases'], window_size)
+df['EMA'] = exponentially_weighted_moving_average(df['actual_cases'], span)
+
+
+# Plot the moving averages and actual cases
+plt.figure(figsize=(10, 6))
+plt.plot(df['days'], df['actual_cases'], label="Actual Cases", color='blue', linestyle='-', alpha=0.6)
+plt.plot(df['days'], df['MA'], label="7-Day Moving Average", color='orange', linestyle='--')
+plt.plot(df['days'], df['EMA'], label="7-Day Exponential Moving Average", color='green', linestyle='--')
+plt.title("Virus Spread: Actual vs. Smoothed Data")
+plt.xlabel("Days")
+plt.ylabel("Number of Infected Cases")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Function to fit logistic growth model to the data
+def fit_logistic_growth(df):
+    popt, _ = curve_fit(logistic_growth, df['days'], df['actual_cases'], p0=[10, 0.1, 5000])
+    return popt
+
+# Fit the logistic growth model
+P0, r, K = fit_logistic_growth(df)
+
+# Print fitted parameters for the logistic growth model
+print(f"Fitted Logistic Growth Model Parameters: P0={P0:.2f}, r={r:.2f}, K={K:.2f}")
+
+# Use the fitted model to predict virus spread
+df['predicted_cases'] = logistic_growth(df['days'], P0, r, K)
+
+print(df['predicted_cases'])
+
+# Plot actual vs predicted virus spread
+plt.figure(figsize=(10, 6))
+plt.plot(df['days'], df['actual_cases'], label="Actual Cases", color='blue')
+plt.plot(df['days'], df['predicted_cases'], label="Predicted Cases (Logistic Growth)", color='red', linestyle='--')
+plt.title("Actual vs Predicted Virus Spread")
+plt.xlabel("Days")
+plt.ylabel("Number of Infected Cases")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Simulate the impact of vaccination on the virus spread
+def vaccination_impact(t, vaccine_rate, vaccine_effectiveness, P_infected):
+    reduction_rate = vaccine_rate * vaccine_effectiveness
+    return P_infected - reduction_rate * t
+
+# Assume vaccine is 70% effective and 50 people are vaccinated per day
+vaccine_effectiveness = 0.7
+vaccination_rate = 50
+
+# Simulate the impact of vaccination on the virus spread
+vaccinated_population = vaccination_impact(df['days'], vaccination_rate, vaccine_effectiveness, df['actual_cases'])
+
+print(vaccinated_population)
+
+# Plot the vaccination impact on virus spread
+plt.figure(figsize=(10, 6))
+plt.plot(df['days'], df['actual_cases'], label="Virus Spread without Vaccine", color='blue')
+plt.plot(df['days'], vaccinated_population, label="Virus Spread with Vaccine", color='green')
+plt.title("Impact of Vaccination on Virus Spread")
+plt.xlabel("Days")
+plt.ylabel("Number of Infected Cases")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Linear regression to predict future cases
+X = df['days'].values.reshape(-1, 1)  # Independent variable (days)
+y = df['actual_cases'].values  # Dependent variable (cases)
+
+# Fit the linear regression model
+linear_model = LinearRegression()
+linear_model.fit(X, y)
+
+# Predict future infections for days 120, 130, 140
+future_days = np.array([120, 130, 140]).reshape(-1, 1)
+future_predictions = linear_model.predict(future_days)
+
+print(f"Future Predictions for Days 120, 130, 140: {future_predictions}")
+
+# Plot the linear regression prediction
+plt.figure(figsize=(10, 6))
+plt.scatter(df['days'], df['actual_cases'], color='blue', label="Actual Data")
+plt.plot(df['days'], linear_model.predict(X), color='red', label="Linear Regression Prediction")
+plt.title("Linear Regression for Virus Spread Prediction")
+plt.xlabel("Days")
+plt.ylabel("Number of Infected Cases")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Simulate the future spread with vaccination for the next 50 days (post-day 100)
+last_actual_case = df['actual_cases'].iloc[-1]
+
+future_vaccination_population = vaccination_impact(np.arange(1, 51),  # Days starting from 1 for the next 50 days
+                                                vaccination_rate, 
+                                                vaccine_effectiveness, 
+                                                last_actual_case)
+# Plot the future scenario with vaccination
+plt.figure(figsize=(10, 6))
+plt.plot(np.arange(101, 151), future_vaccination_population, label="Future Virus Spread with Vaccine", color='green')
+plt.title("Future Virus Spread with Vaccine (Days 101-150)")
+plt.xlabel("Days (101-150)")
+plt.ylabel("Number of Infected Cases")
+plt.legend()
+plt.grid(True)
+plt.show()
